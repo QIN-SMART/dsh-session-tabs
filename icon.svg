@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32" role="img" aria-label="Lightweight Session Tabs">
+  <rect x="2" y="3" width="28" height="26" rx="7" fill="#e9f0fd"/>
+  <rect x="6" y="8" width="9" height="6" rx="2" fill="#4176e6"/>
+  <rect x="17" y="8" width="9" height="6" rx="2" fill="#b9cdf3"/>
+  <rect x="6" y="15" width="20" height="10" rx="2" fill="#fff"/>
+  <path d="M10 19h12M10 22h8" stroke="#b9cdf3" stroke-width="1.4" stroke-linecap="round"/>
+</svg>
