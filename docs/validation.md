@@ -1,6 +1,13 @@
 # Validation and compatibility / 验证范围
 
-Version 0.1.4, checked on 2026-10-14 against DSH 0.2.0-rc.2. The accepted runtime bundle is unchanged for the public release; publication adds documentation, metadata and source-distribution safeguards.
+Version 0.1.5, checked on 2026-10-14 against DSH 0.2.0-rc.2 on Windows (win32 x64, real Electron desktop plus the isolated Web profile). Version 0.1.4 was checked on macOS against the same host version; the accepted runtime bundle is unchanged for the public release; publication adds documentation, metadata and source-distribution safeguards.
+
+## Windows acceptance (0.1.5)
+
+- The isolated Web profile ran the full `--tabs-ui-check` pass, and frame/long-task sampling around tab switches: six alternating switches produced 0 frame gaps above 32 ms and 0 long tasks (0.1.4 on the same machine: 5 gaps and one 55 ms long task).
+- During session creation and tab switches, the flexed conversation body stayed marked in 73 of 73 samples (0.1.4 lost the override for one frame per remount, which let the strip push the composer below the fold).
+- The real Electron desktop (win32, 40 px custom titlebar, `data-windows-titlebar`) rendered one strip at the expected position with a fully visible composer and zero plugin console errors.
+- Install/uninstall was exercised on a byte-for-byte copy of a real desktop profile: after removal the profile directory hashes matched the baseline, `package.json` was byte-identical, `cordis*.yml` were untouched and no `node_modules` residue remained.
 
 ## Automated checks
 

@@ -44,7 +44,11 @@ const WAIT = Number(argvValue('wait', 3500));
 const ALLOW_ERRORS = process.argv.includes('--allow-console-errors');
 const BASELINE = process.argv.includes('--baseline');
 const RESIZE = process.argv.includes('--resize-check');
-const CHROME = String(argvValue('chrome', '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'));
+// Windows has no fixed Chrome location; try the usual suspects before giving up.
+const DEFAULT_CHROME = process.platform === 'win32'
+  ? ['C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe', 'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe', process.env.LOCALAPPDATA ? process.env.LOCALAPPDATA + '\\Google\\Chrome\\Application\\chrome.exe' : '', 'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe'].find(p => p && existsSync(p))
+  : '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
+const CHROME = String(argvValue('chrome', DEFAULT_CHROME));
 const CONNECT = argvValue('connect-port', null);
 const PORT = Number(CONNECT || argvValue('debug-port', 9333));
 const TARGET = String(argvValue('target-match',''));
@@ -260,9 +264,11 @@ async function main() {
       const selector='[data-dsst-action='+kind+']';
       const before=await evaluate(`(()=>{const b=document.querySelector(${JSON.stringify(selector)});return b&&!b.hidden?b.getAttribute('aria-pressed'):null;})()`);
       if(before===null){proof.panels[kind]='native control unavailable';continue;}
-      await click(selector);await sleep(200);
-      const after=await evaluate(`document.querySelector(${JSON.stringify(selector)}).getAttribute('aria-pressed')`);
-      ensure(after!==before,'顶部入口转发原生面板：'+kind);await click(selector);await sleep(200);proof.panels[kind]='toggled and restored';
+      // Windows sidebar animations settle slower than the 0.2s used elsewhere; give the
+      // native panel a moment before reading the relayed state back.
+      await click(selector);await sleep(450);
+      const after=await evaluate(`document.querySelector(${JSON.stringify(selector)})?.getAttribute('aria-pressed')??null`);
+      ensure(after!==before,'顶部入口转发原生面板：'+kind);await click(selector);await sleep(450);proof.panels[kind]='toggled and restored';
     }
     await evaluate('window.__dshSessionTabs.enable(false)');
     ensure(await evaluate('document.querySelector("[data-dsh-session-tabs]").hidden&&!document.querySelector("[data-dsh-session-tabs-native-hidden]")'),'切回原生视图恢复原生面板入口');

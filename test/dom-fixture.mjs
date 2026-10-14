@@ -2,6 +2,7 @@
 export class Node{
   constructor(tag){this.tagName=tag.toUpperCase();this.children=[];this.attrs={};this.listeners=new Map();this.hidden=false;this.className='';this._text='';this.display='block';}
   get parentElement(){return this.parentNode||null;}
+  get isConnected(){let n=this;while(n.parentNode)n=n.parentNode;return n!==this&&n.tagName==='HTML';}
   get firstChild(){return this.children[0]||null;}
   get firstElementChild(){return this.firstChild;}
   get nextSibling(){if(!this.parentNode)return null;return this.parentNode.children[this.parentNode.children.indexOf(this)+1]||null;}

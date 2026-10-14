@@ -65,6 +65,13 @@ test('native navigation and per-session input lifecycle survive switching',()=>{
   assert.equal(f.refs.filter(r=>!r.released).length,2);assert.equal(f.list.value.byId.a.retainedBy.mainView,undefined);
   assert.equal(f.list.value.byId.a.retainedBy['dsh-session-tabs'],1);f.controller.dispose();
 });
+test('opening a tab navigates first and takes its keepalive ref only after the switch settles',()=>{
+  const f=fixture();f.controller.open('b');
+  const openAt=f.calls.findIndex(c=>c[0]==='open'&&c[1]==='b');
+  const retainAt=f.calls.findIndex(c=>c[0]==='retain'&&c[1]==='b');
+  assert.ok(openAt>=0&&retainAt>openAt,'retain must follow navigation, not sit on the click path');
+  assert.equal(f.refs.find(r=>r.id==='b').released,false);f.controller.dispose();
+});
 test('closing a running tab never cancels and retains it until idle',()=>{
   const f=fixture();f.controller.open('b');f.list.value.byId.a.running=true;f.status.value.set('a',{running:true});f.status.emit();
   f.controller.close('a');assert.equal(f.controller.snapshot().ids.includes('a'),false);assert.equal(f.refs.find(r=>r.id==='a').released,false);
@@ -141,6 +148,29 @@ test('own mutations do not schedule an observer-render loop, and keyboard events
   f.dom.observers[0].fn([{target:f.dom.native}]);assert.equal(f.dom.timers.size,0,'streaming chat mutations should not remount the strip');
   const before=f.calls.length;host.dispatch('keydown',{target:button,key:'ArrowRight',isComposing:true,preventDefault(){throw Error('IME must not be captured');}});assert.equal(f.calls.length,before);
   assert.equal(f.dom.doc.listeners.has('keydown'),false);f.ctx.dispose();
+});
+test('conversation remount re-marks the flex body synchronously, before the coalesced refresh',()=>{
+  const f=mounted(),dom=f.dom,conv=dom.main.firstChild;
+  const old=dom.native,fresh=dom.doc.createElement('div');
+  conv.append(fresh);old.remove();
+  dom.observers[0].fn([{type:'childList',target:conv,removedNodes:[old],addedNodes:[fresh]}]);
+  assert.equal(fresh.hasAttribute('data-dsh-session-tabs-main'),true,'the new body must be marked in the same microtask');
+  assert.equal(old.hasAttribute('data-dsh-session-tabs-main'),false);
+  f.ctx.dispose();
+});
+test('switching back restores the remembered scroll position while the transcript settles',()=>{
+  const f=mounted(),dom=f.dom,host=f.dom.center.firstChild;
+  const port=dom.doc.createElement('div');port.setAttribute('data-conversation-scroll','');port.scrollTop=200;port.scrollHeight=1000;dom.native.append(port);
+  const a=host.querySelector('[data-dsst-id="a"]'),plus=host.querySelector('[data-dsst-action="new"]');
+  host.dispatch('click',{target:plus});        // capture a@200, navigate to a fresh blank session
+  port.scrollTop=0;port.scrollHeight=400;      // still loading: shorter than the remembered offset
+  host.dispatch('click',{target:a});           // switch back
+  port.scrollTop=0;
+  dom.flush();                                  // first attempt applies the offset…
+  port.scrollHeight=1000;dom.flush();           // …and a settling retry keeps it after growth
+  assert.equal(port.scrollTop,200);
+  assert.equal(dom.timers.size,0,'the retry chain must terminate');
+  f.ctx.dispose();
 });
 test('partial mount failure rolls back rather than blocking native UI',()=>{
   const f=fixture();f.controller.dispose();const dom=domFixture();dom.extra.window.getComputedStyle=()=>{throw Error('bad native structure');};
