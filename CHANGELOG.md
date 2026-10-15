@@ -1,5 +1,29 @@
 # Changelog
 
+## 0.1.5 — 2026-10-14
+
+- Windows acceptance pass: fix dev tooling so the isolated profile and real-UI checks run without
+  admin rights (symlink → junction fallback), with hoisted npm layouts (nearest `@deepseek-ai`
+  scope detection), and without an explicit `--chrome` flag (Windows Chrome/Edge path probing).
+- Tab switching no longer retains the target session on the click path: the synchronous
+  `retainedBy` publish re-rendered the whole sidebar during the native navigation. The
+  background-keepalive reference is still taken, once navigation has settled. Measured on
+  Windows: six alternating switches dropped from 5 frame gaps > 32 ms and a 55 ms long task to
+  zero gaps and zero long tasks.
+- Re-mark the flexed conversation body synchronously when React swaps the conversation tree.
+  Previously the override was missing until the next coalesced refresh (≥ 16 ms), which let the
+  strip push the composer below the fold in new or switched sessions — visible on slower
+  Windows layouts. Measured: 0 of 73 samples missing the override, previously 1 per switch.
+- Restore the remembered scroll position with bounded retries while the transcript height is
+  still settling, instead of a single 100 ms shot that could clamp and then visibly jump.
+- Yield scroll restoration immediately to transcript wheel, touch, pointer and scrolling-key
+  input, including input before the first attempt. Keep composer/IME input independent, ignore
+  hidden or different-session scrollports, and clean up retries/listeners on navigation or disposal.
+- Keep retrying briefly when history remains temporarily short, stop once the saved position is
+  reached, and add deterministic timed regressions plus an isolated macOS Desktop input check.
+- Relax the panel-relay assertion timing in the real-UI check (Windows sidebar animations settle
+  slower than 200 ms).
+
 ## 0.1.4 — 2026-10-14
 
 - Prepare the first public GitHub/npm release with MIT licensing, bilingual install instructions, native-UI validation notes and a synthetic screenshot. Keep local evidence out of public distributions.

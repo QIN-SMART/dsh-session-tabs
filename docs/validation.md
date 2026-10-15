@@ -1,6 +1,13 @@
 # Validation and compatibility / 验证范围
 
-Version 0.1.4, checked on 2026-10-14 against DSH 0.2.0-rc.2. The accepted runtime bundle is unchanged for the public release; publication adds documentation, metadata and source-distribution safeguards.
+Version 0.1.5 targets DSH 0.2.0-rc.2. Windows results below were supplied by the PR contributor on 2026-10-14 (win32 x64, real Electron desktop plus an isolated Web profile). The maintainer checked the corrected bundle on an isolated Intel macOS Electron copy on 2026-10-15. Daily profiles and the installed application were not modified.
+
+## Contributor-reported Windows acceptance (0.1.5)
+
+- The isolated Web profile ran the full `--tabs-ui-check` pass, and frame/long-task sampling around tab switches: six alternating switches produced 0 frame gaps above 32 ms and 0 long tasks (0.1.4 on the same machine: 5 gaps and one 55 ms long task).
+- During session creation and tab switches, the flexed conversation body stayed marked in 73 of 73 samples (0.1.4 lost the override for one frame per remount, which let the strip push the composer below the fold).
+- The real Electron desktop (win32, 40 px custom titlebar, `data-windows-titlebar`) rendered one strip at the expected position with a fully visible composer and zero plugin console errors.
+- Install/uninstall was exercised on a byte-for-byte copy of a real desktop profile: after removal the profile directory hashes matched the baseline, `package.json` was byte-identical, `cordis*.yml` were untouched and no `node_modules` residue remained.
 
 ## Automated checks
 
@@ -11,6 +18,15 @@ node --test test/verify.mjs
 ```
 
 CI runs this suite on Ubuntu, Windows and macOS with Node 22 and 24. This matrix checks plugin logic; it does not imply GUI acceptance on every operating system.
+
+## Scroll-restoration correction and macOS check (0.1.5)
+
+- All 42 tests pass locally, including a clamped first attempt followed by temporarily unchanged history height and later content growth. Virtual time advances through individual retries rather than flushing all timers before the content changes.
+- Wheel, touch, pointer and scrolling-key input cancel restoration before its first attempt or between retries. Composer/IME input is excluded; width-control wheel forwarding is included. Unobserved scroll-position changes also stop retries.
+- Restoration uses only a foreground scrollport belonging to the selected session. Remounted chat regions acquire fresh listeners, and navigation, native mode and disposal remove pending work and listeners. Retry work ends after at most six attempts (about 1.9 seconds).
+- The isolated Mac Desktop loaded the corrected runtime and passed tab/native-view switching, right-sidebar open/collapse, equal native/proxy control dimensions, one strip, one native main view, no iframe, and visible-composer checks.
+- With synthetic long content in that Desktop copy, a native wheel event after returning to a tab moved the transcript to a new position. The position remained unchanged after the full retry window. No model request was needed for this check.
+- The contributor's Windows performance figures were not independently remeasured on macOS. These checks establish the scroll correction and native layout compatibility, not a uniform tab-switch latency guarantee.
 
 ## Real UI
 

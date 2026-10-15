@@ -1,6 +1,6 @@
 {
   "name": "dsh-session-tabs",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "description": "Single-client session tabs preserving native sidebars and background work",
   "icon": "./icon.svg",
   "type": "module",
