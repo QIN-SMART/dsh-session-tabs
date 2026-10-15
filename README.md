@@ -2,7 +2,7 @@
 
 单客户端会话标签，复用 DSH 原生聊天视图和任务服务，保留左右侧栏及底部工作台。无 iframe，无运行时依赖。
 
-[English](README_EN.md) · 版本 0.1.4 · MIT
+[English](README_EN.md) · 版本 0.1.5 · MIT
 
 [![verify](https://github.com/QIN-SMART/dsh-session-tabs/actions/workflows/verify.yml/badge.svg)](https://github.com/QIN-SMART/dsh-session-tabs/actions/workflows/verify.yml)
 [![npm](https://img.shields.io/npm/v/dsh-session-tabs.svg)](https://www.npmjs.com/package/dsh-session-tabs)
@@ -37,13 +37,13 @@ npm 页面：[dsh-session-tabs](https://www.npmjs.com/package/dsh-session-tabs)�
 **Web：**使用 DSH 命令安装：
 
 ```sh
-dsh plugin --profile web add dsh-session-tabs@0.1.4
+dsh plugin --profile web add dsh-session-tabs@0.1.5
 ```
 
 如果使用 npm 手动管理 profile，先进入目标 profile 目录，再执行：
 
 ```sh
-npm install dsh-session-tabs@0.1.4 --ignore-scripts
+npm install dsh-session-tabs@0.1.5 --ignore-scripts
 ```
 
 手动安装包后，还需在该 profile 的 `dsh.profile.bundles` 中启用 `dsh-session-tabs`，再刷新或重开 DSH；DSH 插件管理器和上面的 `dsh plugin` 命令会处理插件启用。
@@ -51,10 +51,10 @@ npm install dsh-session-tabs@0.1.4 --ignore-scripts
 **只下载离线安装包：**在希望保存文件的目录运行：
 
 ```sh
-npm pack dsh-session-tabs@0.1.4
+npm pack dsh-session-tabs@0.1.5
 ```
 
-会生成 `dsh-session-tabs-0.1.4.tgz`，可在 DSH 插件管理器中用该文件的完整路径添加。
+会生成 `dsh-session-tabs-0.1.5.tgz`，可在 DSH 插件管理器中用该文件的完整路径添加。
 
 ### 从 GitHub 安装
 
@@ -62,7 +62,7 @@ npm pack dsh-session-tabs@0.1.4
 dsh plugin --profile web add github:QIN-SMART/dsh-session-tabs
 ```
 
-CLI 的 `--profile desktop` 是保留名称，不能套用上述 Web 命令。已有本地安装的用户可在目标 profile 的包管理器更新为 `dsh-session-tabs@0.1.4`，再完全退出并重开应用。开发用的模拟模型和测试 profile 不包含在 npm 包中。
+CLI 的 `--profile desktop` 是保留名称，不能套用上述 Web 命令。已有本地安装的用户可在目标 profile 的包管理器更新为 `dsh-session-tabs@0.1.5`，再完全退出并重开应用。开发用的模拟模型和测试 profile 不包含在 npm 包中。
 
 临时回退：点击左栏底部的视图切换图标。完整移除：在目标 profile 的插件管理器移除 `dsh-session-tabs`，再刷新客户端；注入节点、样式、订阅与会话引用会清理。浏览器本地标签清单仍保留，可在需要时清除该站点的 `dsh-session-tabs.v1` 键。
 

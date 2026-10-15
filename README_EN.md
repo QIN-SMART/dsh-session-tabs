@@ -2,7 +2,7 @@
 
 A single-client DSH tab strip that reuses the native conversation and task services. Both sidebars and the bottom workbench remain native. No iframe or runtime dependencies.
 
-[中文](README.md) · Version 0.1.4 · MIT
+[中文](README.md) · Version 0.1.5 · MIT
 
 [![verify](https://github.com/QIN-SMART/dsh-session-tabs/actions/workflows/verify.yml/badge.svg)](https://github.com/QIN-SMART/dsh-session-tabs/actions/workflows/verify.yml)
 [![npm](https://img.shields.io/npm/v/dsh-session-tabs.svg)](https://www.npmjs.com/package/dsh-session-tabs)
@@ -36,13 +36,13 @@ npm page: [dsh-session-tabs](https://www.npmjs.com/package/dsh-session-tabs). Tr
 **Web:** install with the DSH command:
 
 ```sh
-dsh plugin --profile web add dsh-session-tabs@0.1.4
+dsh plugin --profile web add dsh-session-tabs@0.1.5
 ```
 
 If you manage a profile manually with npm, change into the target profile directory first, then run:
 
 ```sh
-npm install dsh-session-tabs@0.1.4 --ignore-scripts
+npm install dsh-session-tabs@0.1.5 --ignore-scripts
 ```
 
 After a manual package install, also enable `dsh-session-tabs` in that profile's `dsh.profile.bundles`, then reload or restart DSH. The DSH plugin manager and the `dsh plugin` command above handle plugin activation.
@@ -50,10 +50,10 @@ After a manual package install, also enable `dsh-session-tabs` in that profile's
 **Download an offline package only:** run this in the directory where you want to save it:
 
 ```sh
-npm pack dsh-session-tabs@0.1.4
+npm pack dsh-session-tabs@0.1.5
 ```
 
-This creates `dsh-session-tabs-0.1.4.tgz`. Add that file by its full path in the DSH plugin manager.
+This creates `dsh-session-tabs-0.1.5.tgz`. Add that file by its full path in the DSH plugin manager.
 
 ### Install from GitHub
 
@@ -61,7 +61,7 @@ This creates `dsh-session-tabs-0.1.4.tgz`. Add that file by its full path in the
 dsh plugin --profile web add github:QIN-SMART/dsh-session-tabs
 ```
 
-The CLI reserves the `desktop` profile name, so do not substitute it into the Web command. Existing local installations can update to `dsh-session-tabs@0.1.4` using their target profile's package manager, then quit and reopen the application. The npm package excludes the development model and test profiles.
+The CLI reserves the `desktop` profile name, so do not substitute it into the Web command. Existing local installations can update to `dsh-session-tabs@0.1.5` using their target profile's package manager, then quit and reopen the application. The npm package excludes the development model and test profiles.
 
 To temporarily revert, choose Native view. For full removal, remove the package through the target profile's plugin manager and reload; DOM, styles, subscriptions, and references are cleaned up. The local tab preference key remains until cleared.
 
