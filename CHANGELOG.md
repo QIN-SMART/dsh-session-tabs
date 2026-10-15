@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.6 — 2026-10-15
+
+- Fix a renderer-freezing MutationObserver feedback loop when a global page such as the plugin manager unmounts the chat view.
+- Change the strip hidden attribute only when needed, release the detached chat-body reference in native/global views, and ignore self-generated mutations during synchronous remount detection.
+- Add a regression that models native hidden-attribute notifications. All 43 tests pass, and four plugin-manager/chat round trips remain responsive in an isolated Intel macOS Desktop.
+
 ## 0.1.5 — 2026-10-14
 
 - Windows acceptance pass: fix dev tooling so the isolated profile and real-UI checks run without

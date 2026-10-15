@@ -158,6 +158,24 @@ test('conversation remount re-marks the flex body synchronously, before the coal
   assert.equal(old.hasAttribute('data-dsh-session-tabs-main'),false);
   f.ctx.dispose();
 });
+test('replacing chat with a global panel does not create a hidden-attribute observer loop',()=>{
+  const f=mounted(),dom=f.dom,host=dom.center.firstChild,old=dom.native;
+  let hidden=host.hidden,writes=0;const mutations=[];
+  // Like a browser, assigning HTMLElement.hidden queues an attribute mutation even if unchanged.
+  Object.defineProperty(host,'hidden',{get:()=>hidden,set:value=>{hidden=!!value;writes++;mutations.push({type:'attributes',attributeName:'hidden',target:host});}});
+  try{
+    f.panel.value.activePanelId='plugins';f.panel.emit();
+    const page=dom.doc.createElement('div');dom.main.replaceChildren(page);
+    dom.observers[0].fn([{type:'childList',target:dom.main,removedNodes:[old],addedNodes:[page]}]);
+    dom.flush();
+    for(let round=0;round<20&&mutations.length;round++)dom.observers[0].fn(mutations.splice(0));
+    assert.equal(mutations.length,0,'own hidden mutations must settle instead of starving the renderer');
+    assert.ok(writes<=2,'hiding a global panel must not repeatedly mount a detached chat body');
+    assert.equal(host.hidden,true);assert.equal(page.hasAttribute('data-dsh-session-tabs-main'),false);
+    f.panel.value.activePanelId=null;dom.main.replaceChildren(old);f.panel.emit();dom.flush();
+    assert.equal(host.hidden,false);assert.equal(old.hasAttribute('data-dsh-session-tabs-main'),true);
+  }finally{f.ctx.dispose();}
+});
 function scrollScenario({height=2000,remembered=400}={}){
   const f=mounted(),dom=f.dom,host=dom.center.firstChild;
   const port=dom.doc.createElement('div');port.setAttribute('data-conversation-scroll','');port.scrollHeight=2000;port.clientHeight=500;

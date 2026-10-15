@@ -1,5 +1,15 @@
 # Validation and compatibility / 验证范围
 
+## Global-page freeze fix (0.1.6)
+
+Version 0.1.6 was checked on 2026-10-15 against DSH 0.2.0-rc.2. It fixes the 0.1.5 tab-strip observer repeatedly remounting a detached chat body when a global page opens. Reassigning the same native hidden attribute can still queue a mutation, so the old feedback loop could prevent the entire renderer from handling input or timers.
+
+The corrected runtime changes hidden state only when necessary, clears the chat-body reference while a global/native view owns the center, and excludes its own mutations from synchronous remount detection. The new regression queues native-style hidden mutations: the 0.1.5 bundle fails; the fix settles and returns to chat correctly. All 43 actual-bundle tests pass.
+
+An isolated Intel macOS Electron copy loaded the corrected runtime and completed four plugin-manager/chat round trips. The plugin list loaded, a 25 ms heartbeat continued, and returning to chat restored the strip and body marker. The diagnostic mutation safety cap was never reached. The runtime bytes match the locally accepted repair. Private profiles, screenshots, logs and credentials are excluded from publication.
+
+The 0.1.5 results below remain historical compatibility evidence; Windows performance figures are contributor-reported and were not remeasured for this fix.
+
 Version 0.1.5 targets DSH 0.2.0-rc.2. Windows results below were supplied by the PR contributor on 2026-10-14 (win32 x64, real Electron desktop plus an isolated Web profile). The maintainer checked the corrected bundle on an isolated Intel macOS Electron copy on 2026-10-15. Daily profiles and the installed application were not modified.
 
 ## Contributor-reported Windows acceptance (0.1.5)
