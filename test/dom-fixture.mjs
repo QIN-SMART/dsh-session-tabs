@@ -46,12 +46,15 @@ export function domFixture(){
   const main=new Node('span'),conv=new Node('span'),native=new Node('div');main.setAttribute('data-slot','main');main.display='contents';conv.setAttribute('data-slot','main.conversation');conv.display='contents';main.append(conv);conv.append(native);center.append(main);
   const doc=new Node('document');doc.documentElement=html;doc.head=head;doc.body=body;doc.activeElement=body;doc.children=[html];
   doc.createElement=tag=>{const n=new Node(tag);n.document=doc;return n;};
-  const timers=new Map(),observers=[];let next=0;
+  const timers=new Map(),observers=[];let next=0,time=0;
   const window=new Node('window');window.localStorage={getItem(){return null;},setItem(){}};window.getComputedStyle=el=>({display:el.display});
   class Observer{constructor(fn){this.fn=fn;this.stopped=false;observers.push(this);}observe(){}disconnect(){this.stopped=true;}}
-  const extra={window,document:doc,navigator:{language:'zh',platform:'MacIntel'},MutationObserver:Observer,setTimeout:fn=>{timers.set(++next,fn);return next;},clearTimeout:id=>timers.delete(id)};
-  const flush=()=>{for(let i=0;timers.size&&i<20;i++){const batch=[...timers];timers.clear();batch.forEach(([,fn])=>fn());}if(timers.size)throw Error('timer loop');};
-  return {extra,doc,window,left,right,center,main,native,timers,observers,flush};
+  const extra={window,document:doc,navigator:{language:'zh',platform:'MacIntel'},MutationObserver:Observer,setTimeout:(fn,ms=0)=>{timers.set(++next,{fn,at:time+Math.max(0,Number(ms)||0)});return next;},clearTimeout:id=>timers.delete(id)};
+  const advance=ms=>{const end=time+ms;for(let i=0;i<1000;i++){const nextTask=[...timers].filter(([,task])=>task.at<=end).sort((a,b)=>a[1].at-b[1].at||a[0]-b[0])[0];if(!nextTask){time=end;return;}time=nextTask[1].at;timers.delete(nextTask[0]);nextTask[1].fn();}throw Error('timer loop');};
+  const flush=()=>{for(let i=0;timers.size&&i<100;i++)advance(Math.max(0,Math.min(...[...timers.values()].map(task=>task.at))-time));if(timers.size)throw Error('timer loop');};
+  // Input tests dispatch through the real ancestor path so delegated capture listeners see it.
+  const dispatch=(target,type,props={})=>{const event={target,type,preventDefault(){},...props},path=[];for(let n=target;n;n=n.parentNode)path.push(n);if(!path.includes(doc))path.push(doc);path.push(window);for(const node of path.reverse())node.dispatch(type,event);return event;};
+  return {extra,doc,window,left,right,center,main,native,timers,observers,flush,advance,dispatch,get time(){return time;}};
 }
 export class TestContext{
   constructor(services,inject){this.cleanups=[];this.registrations=[];this.warnings=[];this.logger={warn:message=>this.warnings.push(message)};

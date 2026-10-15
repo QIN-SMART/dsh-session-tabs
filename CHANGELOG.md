@@ -16,6 +16,11 @@
   Windows layouts. Measured: 0 of 73 samples missing the override, previously 1 per switch.
 - Restore the remembered scroll position with bounded retries while the transcript height is
   still settling, instead of a single 100 ms shot that could clamp and then visibly jump.
+- Yield scroll restoration immediately to transcript wheel, touch, pointer and scrolling-key
+  input, including input before the first attempt. Keep composer/IME input independent, ignore
+  hidden or different-session scrollports, and clean up retries/listeners on navigation or disposal.
+- Keep retrying briefly when history remains temporarily short, stop once the saved position is
+  reached, and add deterministic timed regressions plus an isolated macOS Desktop input check.
 - Relax the panel-relay assertion timing in the real-UI check (Windows sidebar animations settle
   slower than 200 ms).
 

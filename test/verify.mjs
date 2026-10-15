@@ -158,19 +158,109 @@ test('conversation remount re-marks the flex body synchronously, before the coal
   assert.equal(old.hasAttribute('data-dsh-session-tabs-main'),false);
   f.ctx.dispose();
 });
-test('switching back restores the remembered scroll position while the transcript settles',()=>{
-  const f=mounted(),dom=f.dom,host=f.dom.center.firstChild;
-  const port=dom.doc.createElement('div');port.setAttribute('data-conversation-scroll','');port.scrollTop=200;port.scrollHeight=1000;dom.native.append(port);
+function scrollScenario({height=2000,remembered=400}={}){
+  const f=mounted(),dom=f.dom,host=dom.center.firstChild;
+  const port=dom.doc.createElement('div');port.setAttribute('data-conversation-scroll','');port.scrollHeight=2000;port.clientHeight=500;
+  let top=0;const writes=[];
+  // Browsers clamp a restore while history is shorter than the viewport plus remembered offset.
+  Object.defineProperty(port,'scrollTop',{get:()=>top,set:value=>{top=Math.max(0,Math.min(Number(value)||0,Math.max(0,port.scrollHeight-port.clientHeight)));writes.push({time:dom.time,top});}});
+  const region=dom.doc.createElement('div');region.setAttribute('data-conversation-region','chat');region.setAttribute('data-conversation-session','a');
+  const transcript=dom.doc.createElement('p'),composer=dom.doc.createElement('textarea'),seat=dom.doc.createElement('div'),widthControl=dom.doc.createElement('div');
+  seat.setAttribute('data-composer-seat','');seat.setAttribute('data-conversation-region','composer');seat.append(composer);port.append(transcript,seat);region.append(port,widthControl);dom.native.append(region);
+  const navigate=f.services.uiWorkspace.openSession;f.services.uiWorkspace.openSession=id=>{region.setAttribute('data-conversation-session',id);navigate(id);};
+  port.scrollTop=remembered;
   const a=host.querySelector('[data-dsst-id="a"]'),plus=host.querySelector('[data-dsst-action="new"]');
-  host.dispatch('click',{target:plus});        // capture a@200, navigate to a fresh blank session
-  port.scrollTop=0;port.scrollHeight=400;      // still loading: shorter than the remembered offset
-  host.dispatch('click',{target:a});           // switch back
-  port.scrollTop=0;
-  dom.flush();                                  // first attempt applies the offset…
-  port.scrollHeight=1000;dom.flush();           // …and a settling retry keeps it after growth
-  assert.equal(port.scrollTop,200);
-  assert.equal(dom.timers.size,0,'the retry chain must terminate');
-  f.ctx.dispose();
+  host.dispatch('click',{target:plus});port.scrollTop=0;port.scrollHeight=height;
+  host.dispatch('click',{target:a});port.scrollTop=0;
+  return {...f,host,port,region,transcript,composer,widthControl,writes,open:id=>host.dispatch('click',{target:host.querySelector('[data-dsst-id="'+id+'"]')})};
+}
+test('scroll restore waits through a temporarily stable short transcript, then restores after growth',()=>{
+  const f=scrollScenario({height:600,remembered:600});try{
+    f.dom.advance(100);assert.equal(f.port.scrollTop,100,'the first attempt must really clamp');
+    f.dom.advance(120);assert.equal(f.port.scrollTop,100,'history can remain short through another attempt');
+    f.port.scrollHeight=2000;f.dom.advance(240);
+    assert.equal(f.port.scrollTop,600,'later transcript growth must still permit restoration');
+    f.dom.flush();assert.equal(f.dom.timers.size,0);
+  }finally{f.ctx.dispose();}
+});
+test('user wheel input takes priority before the first restore and after a clamped attempt',()=>{
+  for(const beforeFirst of [true,false]){
+    const f=scrollScenario({height:beforeFirst?2000:600});try{
+      f.dom.advance(beforeFirst?50:100);f.dom.dispatch(f.transcript,'wheel',{deltaY:100});f.port.scrollTop=50;
+      f.port.scrollHeight=2000;f.dom.advance(2500);
+      assert.equal(f.port.scrollTop,50,beforeFirst?'first restore must yield to earlier input':'settling retries must not pull the user back');
+      assert.equal(f.dom.timers.size,0);
+    }finally{f.ctx.dispose();}
+  }
+});
+test('touch, scrollbar dragging and scrolling keys cancel restoration without consuming input',()=>{
+  for(const [type,props] of [['touchstart',{}],['pointerdown',{}],['keydown',{key:'PageUp'}],['keydown',{key:'ArrowUp'}],['keydown',{key:'Home'}],['keydown',{key:'End'}],['keydown',{key:' '}]]){
+    const f=scrollScenario();try{
+      f.dom.advance(50);let prevented=false;f.dom.dispatch(f.port,type,{...props,preventDefault(){prevented=true;}});f.port.scrollTop=120;f.dom.advance(2500);
+      assert.equal(f.port.scrollTop,120,type+' '+(props.key||'')+' must cancel the queued restore');assert.equal(prevented,false,'native input must remain usable');
+    }finally{f.ctx.dispose();}
+  }
+});
+test('typing and pointer input in the composer do not cancel transcript restoration',()=>{
+  const f=scrollScenario();try{
+    f.dom.advance(50);
+    for(const [type,props] of [['keydown',{key:'ArrowUp'}],['keydown',{key:' '}],['pointerdown',{}],['touchstart',{}]])f.dom.dispatch(f.composer,type,props);
+    f.dom.advance(50);assert.equal(f.port.scrollTop,400);f.dom.flush();
+  }finally{f.ctx.dispose();}
+});
+test('wheel input forwarded by the native width controls also cancels restoration',()=>{
+  const f=scrollScenario();try{
+    f.dom.advance(50);f.dom.dispatch(f.widthControl,'wheel',{deltaY:100});f.port.scrollTop=80;f.dom.advance(2500);
+    assert.equal(f.port.scrollTop,80);
+  }finally{f.ctx.dispose();}
+});
+test('non-scrolling keys and IME composition leave restoration queued',()=>{
+  const f=scrollScenario();try{
+    for(const props of [{key:'a'},{key:'ArrowUp',isComposing:true},{key:'PageDown',keyCode:229}])f.dom.dispatch(f.transcript,'keydown',props);
+    f.dom.advance(100);assert.equal(f.port.scrollTop,400);
+  }finally{f.ctx.dispose();}
+});
+test('a newly mounted transcript observes input before the first restore',()=>{
+  const f=scrollScenario();try{
+    const next=f.dom.doc.createElement('div');next.setAttribute('data-conversation-scroll','');next.scrollTop=0;next.scrollHeight=2000;next.clientHeight=500;
+    f.port.remove();f.region.append(next);f.dom.observers[0].fn([{type:'childList',target:f.region,removedNodes:[f.port],addedNodes:[next]}]);
+    f.dom.advance(50);f.dom.dispatch(next,'wheel',{deltaY:100});next.scrollTop=70;f.dom.advance(2500);
+    assert.equal(next.scrollTop,70);for(const type of ['wheel','touchstart','pointerdown','keydown'])assert.equal(f.region.listeners.get(type)?.size||0,0);
+  }finally{f.ctx.dispose();}
+});
+test('restoration never writes into a reused region showing another session',()=>{
+  const f=scrollScenario();try{
+    f.region.setAttribute('data-conversation-session','other');f.port.scrollTop=25;f.dom.advance(2500);
+    assert.equal(f.port.scrollTop,25);
+  }finally{f.ctx.dispose();}
+});
+test('an intervening scroll position change also stops restoration when no input event was observed',()=>{
+  for(const beforeFirst of [true,false]){
+    const f=scrollScenario({height:600});try{
+      f.dom.advance(beforeFirst?50:100);f.port.scrollTop=60;f.port.scrollHeight=2000;f.dom.advance(2500);
+      assert.equal(f.port.scrollTop,60,'a changed position must not be overwritten by a later attempt');
+    }finally{f.ctx.dispose();}
+  }
+});
+test('restoration stops after a bounded wait when history never grows',()=>{
+  const f=scrollScenario({height:600});try{
+    f.dom.advance(3000);assert.equal(f.port.scrollTop,100);assert.equal(f.dom.timers.size,0,'short content must not leave a permanent retry chain');
+    const count=f.writes.length;f.port.scrollHeight=2000;f.dom.advance(10000);
+    assert.equal(f.writes.length,count,'timed-out restoration must not resume itself');assert.equal(f.port.scrollTop,100);
+  }finally{f.ctx.dispose();}
+});
+test('switching sessions, native view and disposal cancel outstanding restoration',()=>{
+  for(const action of ['session','native','dispose']){
+    const f=scrollScenario({height:600});try{
+      f.dom.advance(100);
+      if(action==='session')f.open(f.window.__dshSessionTabs.snapshot().ids.find(id=>id!=='a'));
+      else if(action==='native')f.window.__dshSessionTabs.enable(false);
+      else f.ctx.dispose();
+      f.port.scrollTop=25;f.port.scrollHeight=2000;f.dom.advance(2500);
+      assert.equal(f.port.scrollTop,25,action+' must cancel the pending conversation restore');assert.equal(f.dom.timers.size,0);
+      if(action==='dispose')for(const node of [f.dom.doc,f.dom.main,f.region,f.port])for(const type of ['wheel','touchstart','pointerdown','keydown'])assert.equal(node.listeners.get(type)?.size||0,0,'scroll-intent listeners must be removed');
+    }finally{f.ctx.dispose();}
+  }
 });
 test('partial mount failure rolls back rather than blocking native UI',()=>{
   const f=fixture();f.controller.dispose();const dom=domFixture();dom.extra.window.getComputedStyle=()=>{throw Error('bad native structure');};
